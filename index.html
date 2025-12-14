@@ -2,15 +2,19 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>Two-Hand Keyboard Piano</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Two-Hand Touch Piano</title>
+
 <style>
   body {
+    margin:0;
     background:#1e1e1e;
     display:flex;
     justify-content:center;
     align-items:center;
     height:100vh;
     user-select:none;
+    touch-action:none;
     font-family:Arial, sans-serif;
   }
 
@@ -20,8 +24,8 @@
   }
 
   .white {
-    width:50px;
-    height:240px;
+    width:48px;
+    height:220px;
     background:white;
     border:1px solid #000;
     box-sizing:border-box;
@@ -34,8 +38,8 @@
 
   .black {
     position:absolute;
-    width:32px;
-    height:140px;
+    width:30px;
+    height:130px;
     background:black;
     top:0;
     z-index:2;
@@ -48,17 +52,18 @@
 
   .label {
     position:absolute;
-    bottom:8px;
+    bottom:6px;
     width:100%;
     text-align:center;
-    font-size:12px;
+    font-size:11px;
     color:#555;
+    pointer-events:none;
   }
 
   .black .label {
     color:#ccc;
     font-size:10px;
-    bottom:6px;
+    bottom:5px;
   }
 </style>
 </head>
@@ -69,61 +74,24 @@
 <script>
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioCtx = new AudioContext();
-const sustain = 2.2;
+const sustain = 2.5;
+let unlocked = false;
 
-// ▶ 흰 건반 (왼손 C3 ~ 오른손 C6)
-const whiteKeys = [
-  // 왼손
-  { key:"z", note:130.81 }, // C3
-  { key:"x", note:146.83 }, // D
-  { key:"c", note:164.81 }, // E
-  { key:"v", note:174.61 }, // F
-  { key:"b", note:196.00 }, // G
-  { key:"n", note:220.00 }, // A
-  { key:"m", note:246.94 }, // B
-  { key:",", note:261.63 }, // C4
-  { key:".", note:293.66 }, // D
-  { key:"/", note:329.63 }, // E
+// ▶ 오디오 언락 (모바일 필수)
+function unlockAudio() {
+  if (unlocked) return;
+  const buffer = audioCtx.createBuffer(1, 1, 22050);
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(audioCtx.destination);
+  source.start(0);
+  unlocked = true;
+}
 
-  // 오른손
-  { key:"q", note:349.23 }, // F
-  { key:"w", note:392.00 }, // G
-  { key:"e", note:440.00 }, // A
-  { key:"r", note:493.88 }, // B
-  { key:"t", note:523.25 }, // C5
-  { key:"y", note:587.33 }, // D
-  { key:"u", note:659.25 }, // E
-  { key:"i", note:698.46 }, // F
-  { key:"o", note:783.99 }, // G
-  { key:"p", note:880.00 }, // A
-  { key:"[", note:987.77 }, // B
-  { key:"]", note:1046.50 }, // C6
-  { key:"\\", note:1174.66 } // D
-];
-
-// ▶ 검은 건반 (반음)
-const blackKeys = [
-  // 왼손
-  { key:"s", note:138.59, pos:1 },
-  { key:"d", note:155.56, pos:2 },
-  { key:"g", note:185.00, pos:4 },
-  { key:"h", note:207.65, pos:5 },
-  { key:"j", note:233.08, pos:6 },
-
-  // 오른손
-  { key:"2", note:369.99, pos:11 },
-  { key:"3", note:415.30, pos:12 },
-  { key:"5", note:554.37, pos:14 },
-  { key:"6", note:622.25, pos:15 },
-  { key:"7", note:739.99, pos:16 },
-  { key:"9", note:932.33, pos:18 },
-  { key:"0", note:1108.73, pos:19 }
-];
-
-const piano = document.getElementById("piano");
-const keyMap = {};
-
+// ▶ 사운드
 function play(freq) {
+  unlockAudio();
+
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
 
@@ -139,47 +107,110 @@ function play(freq) {
   osc.stop(audioCtx.currentTime + sustain);
 }
 
-// 흰 건반 생성
-whiteKeys.forEach((k) => {
+// ▶ 흰 건반 (왼손 → 오른손)
+const whiteKeys = [
+  { key:"z", note:130.81 }, { key:"x", note:146.83 }, { key:"c", note:164.81 },
+  { key:"v", note:174.61 }, { key:"b", note:196.00 }, { key:"n", note:220.00 },
+  { key:"m", note:246.94 }, { key:",", note:261.63 }, { key:".", note:293.66 },
+  { key:"/", note:329.63 },
+
+  { key:"q", note:349.23 }, { key:"w", note:392.00 }, { key:"e", note:440.00 },
+  { key:"r", note:493.88 }, { key:"t", note:523.25 }, { key:"y", note:587.33 },
+  { key:"u", note:659.25 }, { key:"i", note:698.46 }, { key:"o", note:783.99 },
+  { key:"p", note:880.00 }, { key:"[", note:987.77 },
+  { key:"]", note:1046.50 }, { key:"\\", note:1174.66 }
+];
+
+// ▶ 검은 건반
+const blackKeys = [
+  { key:"s", note:138.59, pos:1 },
+  { key:"d", note:155.56, pos:2 },
+  { key:"g", note:185.00, pos:4 },
+  { key:"h", note:207.65, pos:5 },
+  { key:"j", note:233.08, pos:6 },
+
+  { key:"2", note:369.99, pos:11 },
+  { key:"3", note:415.30, pos:12 },
+  { key:"5", note:554.37, pos:14 },
+  { key:"6", note:622.25, pos:15 },
+  { key:"7", note:739.99, pos:16 },
+  { key:"9", note:932.33, pos:18 },
+  { key:"0", note:1108.73, pos:19 }
+];
+
+const piano = document.getElementById("piano");
+const keyMap = {};
+
+// ▶ 건반 생성
+whiteKeys.forEach(k => {
   const el = document.createElement("div");
   el.className = "white";
   el.dataset.key = k.key;
+  el.dataset.freq = k.note;
 
-  const label = document.createElement("div");
-  label.className = "label";
-  label.textContent = k.key.toUpperCase();
-
-  el.appendChild(label);
+  el.innerHTML = `<div class="label">${k.key.toUpperCase()}</div>`;
   piano.appendChild(el);
-  keyMap[k.key] = { freq:k.note, el };
+  keyMap[k.key] = el;
 });
 
-// 검은 건반 생성
 blackKeys.forEach(b => {
   const el = document.createElement("div");
   el.className = "black";
   el.dataset.key = b.key;
-  el.style.left = `${b.pos * 50 - 16}px`;
+  el.dataset.freq = b.note;
+  el.style.left = `${b.pos * 48 - 15}px`;
 
-  const label = document.createElement("div");
-  label.className = "label";
-  label.textContent = b.key;
-
-  el.appendChild(label);
+  el.innerHTML = `<div class="label">${b.key}</div>`;
   piano.appendChild(el);
-  keyMap[b.key] = { freq:b.note, el };
+  keyMap[b.key] = el;
 });
 
-// 키보드 입력
+// ▶ 입력 공통 처리
+function press(el) {
+  if (!el) return;
+  play(Number(el.dataset.freq));
+  el.classList.add("active");
+}
+
+function release(el) {
+  if (!el) return;
+  el.classList.remove("active");
+}
+
+// ▶ 키보드
 document.addEventListener("keydown", e => {
   if (!keyMap[e.key] || e.repeat) return;
-  play(keyMap[e.key].freq);
-  keyMap[e.key].el.classList.add("active");
+  press(keyMap[e.key]);
 });
 
 document.addEventListener("keyup", e => {
   if (!keyMap[e.key]) return;
-  keyMap[e.key].el.classList.remove("active");
+  release(keyMap[e.key]);
+});
+
+// ▶ 마우스
+piano.addEventListener("mousedown", e => {
+  if (e.target.closest(".white,.black"))
+    press(e.target.closest(".white,.black"));
+});
+
+document.addEventListener("mouseup", () => {
+  document.querySelectorAll(".active").forEach(release);
+});
+
+// ▶ 터치 (멀티터치 지원)
+piano.addEventListener("touchstart", e => {
+  e.preventDefault();
+  [...e.touches].forEach(t => {
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    if (el && el.closest(".white,.black")) {
+      press(el.closest(".white,.black"));
+    }
+  });
+}, { passive:false });
+
+piano.addEventListener("touchend", () => {
+  document.querySelectorAll(".active").forEach(release);
 });
 </script>
 
