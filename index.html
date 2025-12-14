@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Two-Hand Keyboard Piano</title>
+<style>
+  body {
+    background:#1e1e1e;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    user-select:none;
+    font-family:Arial, sans-serif;
+  }
+
+  .piano {
+    position:relative;
+    display:flex;
+  }
+
+  .white {
+    width:50px;
+    height:240px;
+    background:white;
+    border:1px solid #000;
+    box-sizing:border-box;
+    position:relative;
+  }
+
+  .white.active {
+    background:#ddd;
+  }
+
+  .black {
+    position:absolute;
+    width:32px;
+    height:140px;
+    background:black;
+    top:0;
+    z-index:2;
+    border-radius:0 0 4px 4px;
+  }
+
+  .black.active {
+    background:#444;
+  }
+
+  .label {
+    position:absolute;
+    bottom:8px;
+    width:100%;
+    text-align:center;
+    font-size:12px;
+    color:#555;
+  }
+
+  .black .label {
+    color:#ccc;
+    font-size:10px;
+    bottom:6px;
+  }
+</style>
+</head>
+<body>
+
+<div class="piano" id="piano"></div>
+
+<script>
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+const audioCtx = new AudioContext();
+const sustain = 2.2;
+
+// ▶ 흰 건반 (왼손 C3 ~ 오른손 C6)
+const whiteKeys = [
+  // 왼손
+  { key:"z", note:130.81 }, // C3
+  { key:"x", note:146.83 }, // D
+  { key:"c", note:164.81 }, // E
+  { key:"v", note:174.61 }, // F
+  { key:"b", note:196.00 }, // G
+  { key:"n", note:220.00 }, // A
+  { key:"m", note:246.94 }, // B
+  { key:",", note:261.63 }, // C4
+  { key:".", note:293.66 }, // D
+  { key:"/", note:329.63 }, // E
+
+  // 오른손
+  { key:"q", note:349.23 }, // F
+  { key:"w", note:392.00 }, // G
+  { key:"e", note:440.00 }, // A
+  { key:"r", note:493.88 }, // B
+  { key:"t", note:523.25 }, // C5
+  { key:"y", note:587.33 }, // D
+  { key:"u", note:659.25 }, // E
+  { key:"i", note:698.46 }, // F
+  { key:"o", note:783.99 }, // G
+  { key:"p", note:880.00 }, // A
+  { key:"[", note:987.77 }, // B
+  { key:"]", note:1046.50 }, // C6
+  { key:"\\", note:1174.66 } // D
+];
+
+// ▶ 검은 건반 (반음)
+const blackKeys = [
+  // 왼손
+  { key:"s", note:138.59, pos:1 },
+  { key:"d", note:155.56, pos:2 },
+  { key:"g", note:185.00, pos:4 },
+  { key:"h", note:207.65, pos:5 },
+  { key:"j", note:233.08, pos:6 },
+
+  // 오른손
+  { key:"2", note:369.99, pos:11 },
+  { key:"3", note:415.30, pos:12 },
+  { key:"5", note:554.37, pos:14 },
+  { key:"6", note:622.25, pos:15 },
+  { key:"7", note:739.99, pos:16 },
+  { key:"9", note:932.33, pos:18 },
+  { key:"0", note:1108.73, pos:19 }
+];
+
+const piano = document.getElementById("piano");
+const keyMap = {};
+
+function play(freq) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = "sine";
+  osc.frequency.value = freq;
+
+  gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.45, audioCtx.currentTime + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + sustain);
+
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + sustain);
+}
+
+// 흰 건반 생성
+whiteKeys.forEach((k) => {
+  const el = document.createElement("div");
+  el.className = "white";
+  el.dataset.key = k.key;
+
+  const label = document.createElement("div");
+  label.className = "label";
+  label.textContent = k.key.toUpperCase();
+
+  el.appendChild(label);
+  piano.appendChild(el);
+  keyMap[k.key] = { freq:k.note, el };
+});
+
+// 검은 건반 생성
+blackKeys.forEach(b => {
+  const el = document.createElement("div");
+  el.className = "black";
+  el.dataset.key = b.key;
+  el.style.left = `${b.pos * 50 - 16}px`;
+
+  const label = document.createElement("div");
+  label.className = "label";
+  label.textContent = b.key;
+
+  el.appendChild(label);
+  piano.appendChild(el);
+  keyMap[b.key] = { freq:b.note, el };
+});
+
+// 키보드 입력
+document.addEventListener("keydown", e => {
+  if (!keyMap[e.key] || e.repeat) return;
+  play(keyMap[e.key].freq);
+  keyMap[e.key].el.classList.add("active");
+});
+
+document.addEventListener("keyup", e => {
+  if (!keyMap[e.key]) return;
+  keyMap[e.key].el.classList.remove("active");
+});
+</script>
+
+</body>
+</html>
